@@ -1,20 +1,6 @@
-//! The main module and entrypoint
-//!
-//! The operating system and app also starts in this module. Kernel code starts
-//! executing from `entry.asm`, after which [`rust_main()`] is called to
-//! initialize various pieces of functionality [`clear_bss()`]. (See its source code for
-//! details.)
-//!
-//! We then call [`println!`] to display `Hello, world!`.
-
-#![deny(missing_docs)]
-#![deny(warnings)]
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
-
-use core::arch::global_asm;
-use log::*;
 
 #[macro_use]
 mod console;
@@ -22,10 +8,26 @@ mod lang_items;
 mod logging;
 mod sbi;
 
+use core::{arch::global_asm, panic};
+#[allow(unused)]
+use log::{debug, error, info, trace, warn};
+
 global_asm!(include_str!("entry.asm"));
 
-/// clear BSS segment
-pub fn clear_bss() {
+#[no_mangle]
+pub fn rust_main() -> ! {
+    clear_bss();
+
+    logging::init_log();
+
+    show_os_sections();
+
+    info!("Hello, World!");
+
+    panic!("Shutdown Machine!");
+}
+
+fn clear_bss() {
     extern "C" {
         fn sbss();
         fn ebss();
@@ -33,44 +35,42 @@ pub fn clear_bss() {
     (sbss as usize..ebss as usize).for_each(|a| unsafe { (a as *mut u8).write_volatile(0) });
 }
 
-/// the rust entry-point of os
-#[no_mangle]
-pub fn rust_main() -> ! {
+fn show_os_sections() {
     extern "C" {
-        fn stext(); // begin addr of text segment
-        fn etext(); // end addr of text segment
-        fn srodata(); // start addr of Read-Only data segment
-        fn erodata(); // end addr of Read-Only data ssegment
-        fn sdata(); // start addr of data segment
-        fn edata(); // end addr of data segment
-        fn sbss(); // start addr of BSS segment
-        fn ebss(); // end addr of BSS segment
-        fn boot_stack_lower_bound(); // stack lower bound
-        fn boot_stack_top(); // stack top
+        fn stext();
+        fn etext();
+        fn srodata();
+        fn erodata();
+        fn sdata();
+        fn edata();
+        fn sbss();
+        fn ebss();
+        fn boot_stack_top();
+        fn boot_stack_lower_bound();
     }
-    clear_bss();
-    logging::init();
-    println!("[kernel] Hello, world!");
-    trace!(
-        "[kernel] .text [{:#x}, {:#x})",
-        stext as usize,
-        etext as usize
+
+    info!(
+        "Kernel Section Info: .text   : [0x{:x}, 0x{:x})",
+        stext as usize, etext as usize
     );
-    debug!(
-        "[kernel] .rodata [{:#x}, {:#x})",
+
+    info!(
+        "Kernel Section Info: .rodata : [0x{:x}, 0x{:x})",
         srodata as usize, erodata as usize
     );
+
     info!(
-        "[kernel] .data [{:#x}, {:#x})",
+        "Kernel Section Info: .sdata  : [0x{:x}, 0x{:x})",
         sdata as usize, edata as usize
     );
-    warn!(
-        "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
-        boot_stack_top as usize, boot_stack_lower_bound as usize
-    );
-    error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
 
-    // CI autotest success: sbi::shutdown(false)
-    // CI autotest failed : sbi::shutdown(true)
-    sbi::shutdown(false)
+    info!(
+        "Kernel Section Info: .bss    : [0x{:x}, 0x{:x})",
+        sbss as usize, ebss as usize
+    );
+
+    info!(
+        "Kernel Stack Info: [0x{:x}, 0x{:x})",
+        boot_stack_lower_bound as usize, boot_stack_top as usize
+    );
 }
