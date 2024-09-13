@@ -23,7 +23,7 @@ pub fn rust_main() -> ! {
 
     show_os_sections();
 
-    info!("[Kenel] Hello, World!");
+    info!("[Kernel] Hello, World!");
 
     // panic!("Shutdown Machine!");
     info!("[Kernel] Kernel Shutdown!");
