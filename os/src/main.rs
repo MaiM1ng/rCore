@@ -8,6 +8,7 @@ mod lang_items;
 mod logging;
 mod sbi;
 
+#[allow(unused)]
 use core::{arch::global_asm, panic};
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
@@ -22,9 +23,11 @@ pub fn rust_main() -> ! {
 
     show_os_sections();
 
-    info!("Hello, World!");
+    info!("[Kenel] Hello, World!");
 
-    panic!("Shutdown Machine!");
+    // panic!("Shutdown Machine!");
+    info!("[Kernel] Kernel Shutdown!");
+    sbi::shutdown(false);
 }
 
 fn clear_bss() {
