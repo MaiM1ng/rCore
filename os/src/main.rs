@@ -14,7 +14,7 @@
 //! We then call [`batch::run_next_app()`] and for the first time go to
 //! userspace.
 
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 #![deny(warnings)]
 #![no_std]
 #![no_main]
@@ -63,8 +63,11 @@ pub fn rust_main() -> ! {
         fn boot_stack_lower_bound(); // stack lower bound
         fn boot_stack_top(); // stack top
     }
+
     clear_bss();
-    logging::init();
+
+    logging::init_log();
+
     println!("[kernel] Hello, world!");
     trace!(
         "[kernel] .text [{:#x}, {:#x})",
@@ -84,6 +87,7 @@ pub fn rust_main() -> ! {
         boot_stack_top as usize, boot_stack_lower_bound as usize
     );
     error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
+
     trap::init();
     batch::init();
     batch::run_next_app();

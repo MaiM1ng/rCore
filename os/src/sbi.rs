@@ -21,5 +21,5 @@ pub fn shutdown(failure: bool) -> ! {
     } else {
         system_reset(Shutdown, SystemFailure);
     }
-    unreachable!()
+    unreachable!();
 }
