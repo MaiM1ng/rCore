@@ -36,6 +36,8 @@ pub fn main() -> i32 {
         -1
     );
     let (bottom, top) = unsafe { stack_range() };
+    // 长度超了
+    //
     assert_eq!(
         write(STDOUT, unsafe {
             slice::from_raw_parts((top - 5) as *const _, 10)
@@ -49,6 +51,7 @@ pub fn main() -> i32 {
         -1
     );
     // TODO: test string located in .data section
+    // rust字符串貌似是动态在堆上分配的
     println!("Test write0 OK!");
     0
 }

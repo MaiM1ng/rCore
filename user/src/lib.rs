@@ -51,6 +51,7 @@ pub extern "C" fn _start() -> ! {
         HEAP.lock()
             .init(HEAP_SPACE.as_ptr() as usize, USER_HEAP_SIZE);
     }
+    // exit会进行一次缓冲区的flush，这也是为什么会有一次长度为0的 sys_Write
     exit(main());
 }
 
