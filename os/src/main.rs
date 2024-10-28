@@ -40,6 +40,7 @@ pub mod trap;
 
 global_asm!(include_str!("entry.asm"));
 global_asm!(include_str!("link_app.S"));
+global_asm!(include_str!("fpu.asm"));
 
 /// clear BSS segment
 fn clear_bss() {
@@ -53,15 +54,39 @@ fn clear_bss() {
     }
 }
 
+fn init_fpu() {
+    extern "C" {
+        fn fpu_enable();
+    }
+
+    unsafe {
+        fpu_enable();
+    }
+}
+
 /// the rust entry-point of os
 #[no_mangle]
 pub fn rust_main() -> ! {
     clear_bss();
+    init_fpu();
     println!("[kernel] Hello, world!");
     trap::init();
     loader::load_apps();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
+
+    use riscv::register::sstatus;
+    unsafe {
+        // 此时在内核态, 开启内核态中断
+        sstatus::set_sie();
+    }
+    loop {
+        if trap::kernel_trap::check_kernel_interrupt() {
+            println!("[Kernel] Kernel interrput returned.");
+            break;
+        }
+    }
+
     task::run_first_task();
     panic!("Unreachable in rust_main!");
 }

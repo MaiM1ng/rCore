@@ -1,6 +1,6 @@
 TARGET := riscv64gc-unknown-none-elf
 MODE := release
-APP_DIR := src/bin
+APP_DIR := src/float-test/
 TARGET_DIR := target/$(TARGET)/$(MODE)
 APPS := $(wildcard $(APP_DIR)/*.rs)
 ELFS := $(patsubst $(APP_DIR)/%.rs, $(TARGET_DIR)/%, $(APPS))

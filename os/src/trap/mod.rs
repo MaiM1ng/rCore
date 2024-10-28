@@ -13,11 +13,18 @@
 //! to [`syscall()`].
 
 mod context;
+/// check kernel interrupt
+pub mod kernel_trap;
 
 use crate::syscall::syscall;
-use crate::task::{exit_current_and_run_next, suspend_current_and_run_next};
+use crate::task::{
+    exit_current_and_run_next, suspend_current_and_run_next, update_current_task_kernel_time,
+    update_current_task_user_time,
+};
 use crate::timer::set_next_trigger;
 use core::arch::global_asm;
+use kernel_trap::mark_kernel_interrupt_triggered;
+use riscv::register::sstatus::{self};
 use riscv::register::{
     mtvec::TrapMode,
     scause::{self, Exception, Interrupt, Trap},
@@ -46,6 +53,18 @@ pub fn enable_timer_interrupt() {
 #[no_mangle]
 /// handle an interrupt, exception, or system call from user space
 pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+    // 根据进入内核前的特权等级判断是来自于谁的异常
+    match sstatus::read().spp() {
+        sstatus::SPP::User => user_trap_handler(cx),
+        sstatus::SPP::Supervisor => kernel_trap_handler(cx),
+    }
+}
+
+/// handle user trap
+pub fn user_trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+    // 更新用户态时间
+    update_current_task_user_time();
+
     let scause = scause::read(); // get trap cause
     let stval = stval::read(); // get extra value
     match scause.cause() {
@@ -59,6 +78,7 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         }
         Trap::Exception(Exception::IllegalInstruction) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            // println!("[Kernel] sepc = {:x}", sepc::read());
             exit_current_and_run_next();
         }
         Trap::Interrupt(Interrupt::SupervisorTimer) => {
@@ -71,6 +91,29 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
                 scause.cause(),
                 stval
             );
+        }
+    }
+    // TODO: 为什么返回值还是cx
+    update_current_task_kernel_time();
+    cx
+}
+
+/// handle kernel trap
+pub fn kernel_trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
+    let scause = scause::read();
+    let stval = stval::read();
+
+    match scause.cause() {
+        Trap::Interrupt(Interrupt::SupervisorTimer) => {
+            println!("[Kernel] Kernel Interrupt: from time!");
+            mark_kernel_interrupt_triggered();
+            set_next_trigger();
+        }
+        Trap::Exception(Exception::StoreFault) | Trap::Exception(Exception::StorePageFault) => {
+            panic!("[Kernel] PageFault in kernel, bad addr = {:#x}, bad instruction = {:#x}, kernel killed.", stval, cx.sepc);
+        }
+        _ => {
+            panic!("[Kernel] Unknown kernel exception or interrupts");
         }
     }
     cx

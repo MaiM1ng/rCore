@@ -11,6 +11,14 @@ edition = "2018"
 [profile.release]
 debug = true
 
+[[bin]]
+name = "04float"
+path = "src/float-test/04float.rs"
+
+[[bin]]
+name = "05fpro"
+path = "src/float-test/05fpro.rs"
+
 # [features]
 # board_qemu = []
 # board_k210 = []

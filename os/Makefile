@@ -66,7 +66,7 @@ qemu-version-check:
 	@sh scripts/qemu-ver-check.sh $(QEMU_NAME)
 
 run-inner: qemu-version-check build
-	@qemu-system-riscv64 $(QEMU_ARGS)
+	qemu-system-riscv64 $(QEMU_ARGS)
 
 debug: qemu-version-check build
 	@tmux new-session -d \

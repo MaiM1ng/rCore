@@ -8,6 +8,8 @@ pub struct TrapContext {
     pub sstatus: Sstatus,
     /// CSR sepc
     pub sepc: usize,
+    /// F extension regs
+    pub f: [usize; 32],
 }
 
 impl TrapContext {
@@ -23,6 +25,7 @@ impl TrapContext {
             x: [0; 32],
             sstatus,
             sepc: entry, // entry point of app
+            f: [0; 32],
         };
         cx.set_sp(sp); // app's user stack pointer
         cx // return initial Trap Context of app
